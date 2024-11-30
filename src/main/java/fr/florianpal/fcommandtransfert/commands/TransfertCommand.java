@@ -28,6 +28,6 @@ public class TransfertCommand extends BaseCommand {
         out.writeUTF("command");
         out.writeUTF(command);
         Optional<Player> optional = plugin.getServer().getPlayer(player);
-        optional.ifPresent(r -> r.getCurrentServer().ifPresent( s -> s.sendPluginMessage(FCommandTransfert.BUNGEE_TRANSFERT, out.toByteArray())));
+        optional.ifPresent(r -> r.getCurrentServer().ifPresent(s -> s.sendPluginMessage(FCommandTransfert.BUNGEE_TRANSFERT, out.toByteArray())));
     }
 }

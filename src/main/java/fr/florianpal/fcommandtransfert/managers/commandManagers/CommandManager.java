@@ -15,15 +15,24 @@
  *  @author Florianpal.
  */
 
-package fr.florianpal.fmessage.managers.commandManagers;
+package fr.florianpal.fcommandtransfert.managers.commandManagers;
 
 import co.aikar.commands.MessageType;
 import co.aikar.commands.VelocityCommandManager;
+import co.aikar.locales.MessageKey;
 import com.velocitypowered.api.proxy.ProxyServer;
+import dev.dejvokep.boostedyaml.YamlDocument;
+import dev.dejvokep.boostedyaml.block.implementation.Section;
+import dev.dejvokep.boostedyaml.route.Route;
+import dev.dejvokep.boostedyaml.settings.dumper.DumperSettings;
+import dev.dejvokep.boostedyaml.settings.general.GeneralSettings;
 import fr.florianpal.fcommandtransfert.FCommandTransfert;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
+import java.util.Objects;
 
 public class CommandManager extends VelocityCommandManager {
 
@@ -35,9 +44,41 @@ public class CommandManager extends VelocityCommandManager {
         this.setFormat(MessageType.INFO, NamedTextColor.YELLOW, NamedTextColor.GOLD);
         this.setFormat(MessageType.HELP, NamedTextColor.YELLOW, NamedTextColor.GOLD, NamedTextColor.RED);
         this.setFormat(MessageType.ERROR, NamedTextColor.RED, NamedTextColor.GOLD);
-        this.getLocales().loadLanguages();
+        try {
+            loadYamlLanguageFile(plugin, "lang.yml", Locale.ENGLISH);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-        this.getLocales().setDefaultLocale(Locale.FRENCH);
+        this.getLocales().setDefaultLocale(Locale.ENGLISH);
+    }
+
+    public boolean loadYamlLanguageFile(FCommandTransfert plugin, String file, Locale locale) throws IOException {
+
+        YamlDocument yamlConfiguration = YamlDocument.create(new File(plugin.getDataDirectory().toFile(), file),
+                Objects.requireNonNull(getClass().getResourceAsStream("/"+file)),
+                GeneralSettings.DEFAULT,
+                DumperSettings.DEFAULT
+        );
+        return loadLanguage(yamlConfiguration, locale);
+    }
+
+    public boolean loadLanguage(YamlDocument config, Locale locale) {
+        boolean loaded = false;
+        for (Object parentKey : config.getKeys()) {
+            Section inner = config.getSection(Route.from(parentKey));
+            if (inner == null) {
+                continue;
+            }
+            for (Object key : inner.getKeys()) {
+                String value = inner.getString(Route.from(key));
+                if (value != null && !value.isEmpty()) {
+                    this.getLocales().addMessage(locale, MessageKey.of(parentKey + "." + key), value);
+                    loaded = true;
+                }
+            }
+        }
+        return loaded;
     }
 
     public void reloadLang() {

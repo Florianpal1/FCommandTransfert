@@ -8,6 +8,8 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import fr.florianpal.fcommandtransfert.commands.TransfertCommand;
+import fr.florianpal.fcommandtransfert.managers.commandManagers.CommandManager;
+import org.bstats.velocity.Metrics;
 import org.slf4j.Logger;
 
 import java.io.*;
@@ -19,31 +21,39 @@ import java.util.zip.ZipEntry;
 @Plugin(id = "fcommandtransfert", name = "FCommandTransfert", version = "0.1.0-SNAPSHOT",
         url = "https://florianpal.fr", description = "FCommandTransfert", authors = {"Florianpal"})
 public class FCommandTransfert {
-    private fr.florianpal.fmessage.managers.commandManagers.CommandManager commandManager;
+    private CommandManager commandManager;
 
     private final ProxyServer server;
     private final Logger logger;
+
+    private final Metrics.Factory metricsFactory;
+
+    private Metrics metrics;
 
     private final Path dataDirectory;
 
     public static final MinecraftChannelIdentifier BUNGEE_TRANSFERT = MinecraftChannelIdentifier.from(("ftransfert:command"));
 
     @Inject
-    public FCommandTransfert(ProxyServer proxyServer, Logger logger, @DataDirectory Path dataDirectory) {
+    public FCommandTransfert(ProxyServer proxyServer, Logger logger, Metrics.Factory metricsFactory, @DataDirectory Path dataDirectory) {
         this.server = proxyServer;
         this.logger = logger;
         this.dataDirectory = dataDirectory;
+        this.metricsFactory = metricsFactory;
     }
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
 
-        File languageFile = new File(dataDirectory.toFile(), "lang_fr.yml");
-        createDefaultConfiguration(languageFile, "lang_fr.yml");
+        int pluginId = 24048; // <-- Replace with the id of your plugin!
+        metrics = metricsFactory.make(this, pluginId);
+
+        File languageFile = new File(dataDirectory.toFile(), "lang.yml");
+        createDefaultConfiguration(languageFile, "lang.yml");
 
 
         server.getChannelRegistrar().register(BUNGEE_TRANSFERT);
-        commandManager = new fr.florianpal.fmessage.managers.commandManagers.CommandManager(getServer(), this);
+        commandManager = new CommandManager(getServer(), this);
         commandManager.registerCommand(new TransfertCommand(this));
     }
 
@@ -110,5 +120,13 @@ public class FCommandTransfert {
                 }
             }
         }
+    }
+
+    public CommandManager getCommandManager() {
+        return commandManager;
+    }
+
+    public Metrics getMetrics() {
+        return metrics;
     }
 }
